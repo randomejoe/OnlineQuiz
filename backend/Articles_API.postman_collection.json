@@ -1,0 +1,143 @@
+{
+	"info": {
+		"_postman_id": "articles-api-collection",
+		"name": "Articles API",
+		"description": "API collection for Article CRUD operations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get All Articles",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/articles",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"articles"
+					]
+				},
+				"description": "Retrieve all articles"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Article by ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/articles/{{article_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"articles",
+						"{{article_id}}"
+					]
+				},
+				"description": "Retrieve a specific article by ID"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Article",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"New Article Title\",\n    \"author\": \"John Doe\",\n    \"category\": \"Technology\",\n    \"published\": \"2025-01-15\",\n    \"content\": \"This is the content of the new article.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/articles",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"articles"
+					]
+				},
+				"description": "Create a new article"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Article",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Updated Article Title\",\n    \"author\": \"Jane Smith\",\n    \"category\": \"Science\",\n    \"published\": \"2025-01-16\",\n    \"content\": \"This is the updated content of the article.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/articles/{{article_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"articles",
+						"{{article_id}}"
+					]
+				},
+				"description": "Update an existing article by ID"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Article",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/articles/{{article_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"articles",
+						"{{article_id}}"
+					]
+				},
+				"description": "Delete an article by ID"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost",
+			"type": "string"
+		},
+		{
+			"key": "article_id",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}
