@@ -18,15 +18,19 @@ class QuizController extends \App\Framework\Controller
 	{
 		$subject = $_GET['subject'] ?? null;
 		$difficulty = $_GET['difficulty'] ?? null;
-		$page = $_GET['page'] ?? 1;
-		$perPage = $_GET['per_page'] ?? 10;
+		$page = max(1, (int)($_GET['page'] ?? 1));
+		$perPage = max(1, min(100, (int)($_GET['per_page'] ?? 10)));
 
 		$filters = [];
 		if ($subject !== null && $subject !== '') $filters['subject'] = $subject;
 		if ($difficulty !== null && $difficulty !== '') $filters['difficulty'] = $difficulty;
 
-		$result = $this->quizService->getAll($filters, (int)$page, (int)$perPage);
-		$this->sendSuccessResponse($result);
+		try {
+			$result = $this->quizService->getAll($filters, $page, $perPage);
+			$this->sendSuccessResponse($result);
+		} catch (\Exception $e) {
+			$this->sendErrorResponse('Internal server error', 500);
+		}
 	}
 
 	public function get($vars = []): void

@@ -121,6 +121,20 @@ The application will be available at:
 
 Import the `Articles_API.postman_collection.json` file into Postman to test all endpoints.
 
+### Security Regression Smoke Test
+
+A repeatable smoke test is included to validate key security controls:
+
+```bash
+python3 backend/scripts/security_smoke_test.py
+```
+
+It verifies:
+- registration cannot self-assign admin role
+- non-admin quiz payloads do not expose `is_correct`
+- admin payloads include `is_correct`
+- scoring for multiple choice/true-false uses `option_id` (tampered answer text fails)
+
 ## Docker Services
 
 - **nginx**: Web server (port 80)
@@ -128,7 +142,7 @@ Import the `Articles_API.postman_collection.json` file into Postman to test all 
 - **mysql**: MariaDB database (port 3306)
   - Username: `developer`
   - Password: `secret123`
-  - Database: `developmentdb`
+  - Database: `quiz`
 - **phpmyadmin**: Database management interface (port 8080)
 
 ## Data Storage

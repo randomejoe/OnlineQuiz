@@ -11,7 +11,7 @@ class AuthService implements IAuthService
 {
 	private IUserRepository $userRepository;
 
-	public function __construct(IUserRepository $userRepository = null)
+	public function __construct(?IUserRepository $userRepository = null)
 	{
 		$this->userRepository = $userRepository ?? new UserRepository();
 	}
