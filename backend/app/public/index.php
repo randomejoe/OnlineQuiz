@@ -5,6 +5,13 @@ if (class_exists(\Dotenv\Dotenv::class)) {
 	$dotenv->load();
 }
 
+// Keep API responses JSON-clean: log PHP warnings/errors instead of printing HTML into response bodies.
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('html_errors', '0');
+ini_set('error_log', '/proc/self/fd/2');
+
 /**
  * This is the central route handler of the application.
  * It uses FastRoute to map URLs to controller methods.
@@ -89,13 +96,15 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 switch ($routeInfo[0]) {
 	// Handle not found routes
 	case FastRoute\Dispatcher::NOT_FOUND:
+		header('Content-Type: application/json; charset=utf-8');
 		http_response_code(404);
-		echo 'Not Found';
+		echo json_encode(['error' => 'Not Found']);
 		break;
 	// Handle routes that were invoked with the wrong HTTP method
 	case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
+		header('Content-Type: application/json; charset=utf-8');
 		http_response_code(405);
-		echo 'Method Not Allowed';
+		echo json_encode(['error' => 'Method Not Allowed']);
 		break;
 	// Handle found routes
 	case FastRoute\Dispatcher::FOUND:

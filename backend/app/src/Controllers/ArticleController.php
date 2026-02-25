@@ -48,7 +48,6 @@ class ArticleController extends Controller
             $article = $this->articleService->create($article);
             return $this->sendSuccessResponse($article, 201);
         } catch (\Exception $e) {
-            var_dump($e->getMessage());
             return $this->sendErrorResponse('Internal server error', 500);
         }
     }
