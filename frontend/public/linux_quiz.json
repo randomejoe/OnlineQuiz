@@ -1,0 +1,206 @@
+{
+	"title": "Linux Knowledge Challenge",
+	"description": "Test your Linux skills with a mix of command-line, distributions, and system knowledge questions!",
+	"subject": "Linux",
+	"difficulty": "medium",
+	"time_limit_minutes": 20,
+	"questions": [
+		{
+			"type": "multiple_choice",
+			"question_text": "Which command is used to list all files and directories, including hidden ones, in Linux?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "ls -a",
+					"is_correct": true
+				},
+				{
+					"option_text": "ls -l",
+					"is_correct": false
+				},
+				{
+					"option_text": "ls -h",
+					"is_correct": false
+				},
+				{
+					"option_text": "ls -r",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "Linux is case-sensitive, meaning 'File.txt' and 'file.txt' are considered different files.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": true
+				},
+				{
+					"option_text": "False",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "Which Linux command is used to check the current directory?",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "pwd",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "PWD",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "pwdd",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which of the following is NOT a Linux distribution?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "Ubuntu",
+					"is_correct": false
+				},
+				{
+					"option_text": "Fedora",
+					"is_correct": false
+				},
+				{
+					"option_text": "Windows",
+					"is_correct": true
+				},
+				{
+					"option_text": "Debian",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "The 'chmod' command is used to change file permissions in Linux.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": true
+				},
+				{
+					"option_text": "False",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "Name the Linux command used to display the first 10 lines of a file.",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "head",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "HEAD",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "hed",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which command is used to search for a text pattern in files?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "grep",
+					"is_correct": true
+				},
+				{
+					"option_text": "find",
+					"is_correct": false
+				},
+				{
+					"option_text": "locate",
+					"is_correct": false
+				},
+				{
+					"option_text": "echo",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "The root user in Linux has unlimited privileges and can modify any file.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": true
+				},
+				{
+					"option_text": "False",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "Which Linux command is used to display the last lines of a file, commonly used to monitor logs?",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "tail",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "TAIL",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "tal",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which package manager is used in Debian-based distributions like Ubuntu?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "apt",
+					"is_correct": true
+				},
+				{
+					"option_text": "yum",
+					"is_correct": false
+				},
+				{
+					"option_text": "pacman",
+					"is_correct": false
+				},
+				{
+					"option_text": "zypper",
+					"is_correct": false
+				}
+			]
+		}
+	]
+}

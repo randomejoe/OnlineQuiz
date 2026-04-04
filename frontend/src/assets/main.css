@@ -1,1 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+:root {
+  --color-bg: #eef3f8;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-border: #d8e1ea;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-primary: #2563eb;
+  --color-primary-strong: #1d4ed8;
+  --color-danger: #dc2626;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--color-text);
+    font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+    background:
+      radial-gradient(circle at top right, #dbeafe 0%, transparent 45%),
+      linear-gradient(180deg, #f7fafc 0%, var(--color-bg) 100%);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-6xl space-y-5;
+  }
+
+  .panel {
+    @apply rounded-2xl border bg-white shadow-sm;
+    border-color: var(--color-border);
+  }
+
+  .panel-soft {
+    @apply rounded-2xl border shadow-sm;
+    border-color: var(--color-border);
+    background: var(--color-surface-soft);
+  }
+
+  .status-error {
+    @apply rounded-xl px-3 py-2 text-sm;
+    background: #ffe5e5;
+    color: #a11d1d;
+  }
+
+  .status-info {
+    @apply rounded-xl border px-4 py-5 text-center text-sm;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+  }
+
+  .title-xl {
+    @apply text-2xl font-bold tracking-tight;
+    color: var(--color-text);
+  }
+
+  .subtitle {
+    @apply text-sm;
+    color: var(--color-text-muted);
+  }
+
+  .field {
+    @apply w-full rounded-lg border px-3 py-2 text-sm transition;
+    border-color: var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .field:hover {
+    border-color: #c3d0dc;
+  }
+
+  .field:focus {
+    border-color: var(--color-primary);
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition;
+    border-color: transparent;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .btn:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  }
+
+  .btn:active,
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-danger:active {
+    transform: translateY(0);
+  }
+
+  .btn:disabled,
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-danger:disabled {
+    @apply cursor-not-allowed opacity-60;
+    transform: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .btn-primary {
+    @apply text-white;
+    background: var(--color-primary);
+    border-color: rgba(29, 78, 216, 0.35);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-strong);
+  }
+
+  .btn-secondary {
+    border-color: var(--color-border);
+    color: #334155;
+    background: var(--color-surface);
+  }
+
+  .btn-secondary:hover {
+    background: #f8fafc;
+  }
+
+  .btn-danger {
+    @apply text-white;
+    background: var(--color-danger);
+    border-color: rgba(185, 28, 28, 0.4);
+  }
+
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+}

@@ -1,103 +1,69 @@
-import config from '../config.js';
+import config from '../config.js'
 
-/**
- * API Utility Functions
- * 
- * Helper functions for making API requests using the app configuration
- */
+let handleUnauthorized = async () => { }
 
-/**
- * Build the full API URL for an endpoint
- * @param {string} endpoint - API endpoint (e.g., '/articles')
- * @returns {string} Full API URL
- */
+export function configureApiClient(options = {}) {
+  if (typeof options.handleUnauthorized === 'function') {
+    handleUnauthorized = options.handleUnauthorized
+  }
+}
+
 function buildApiUrl(endpoint) {
-  const baseUrl = config.apiDomain.replace(/\/$/, ''); // Remove trailing slash
-  const path = endpoint.replace(/^\//, ''); // Remove leading slash from endpoint
-  return `${baseUrl}/${path}`;
+  const baseUrl = config.apiDomain.replace(/\/$/, '')
+  const path = endpoint.replace(/^\//, '')
+  return `${baseUrl}/${path}`
 }
 
-/**
- * Make a GET request to the API
- * @param {string} endpoint - API endpoint (e.g., '/articles')
- * @param {RequestInit} options - Fetch options
- * @returns {Promise<Response>}
- */
-export async function get(endpoint, options = {}) {
-  const url = buildApiUrl(endpoint);
-  return fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+async function request(method, endpoint, data, options = {}) {
+  const url = buildApiUrl(endpoint)
+  const { headers: optionHeaders = {}, ...restOptions } = options
+
+  const headers = {
+    ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    ...optionHeaders,
+  }
+
+  const response = await fetch(url, {
+    method,
+    credentials: 'include',
+    headers,
+    ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
+    ...restOptions,
+  })
+
+  if (response.status === 401) {
+    await handleUnauthorized()
+  }
+
+  return response
 }
 
-/**
- * Make a POST request to the API
- * @param {string} endpoint - API endpoint
- * @param {object} data - Request body data
- * @param {RequestInit} options - Fetch options
- * @returns {Promise<Response>}
- */
-export async function post(endpoint, data, options = {}) {
-  const url = buildApiUrl(endpoint);
-  return fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    body: JSON.stringify(data),
-    ...options,
-  });
+export async function readJsonResponse(response, fallbackMessage) {
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(payload.error || fallbackMessage)
+  }
+
+  return payload
 }
 
-/**
- * Make a PUT request to the API
- * @param {string} endpoint - API endpoint
- * @param {object} data - Request body data
- * @param {RequestInit} options - Fetch options
- * @returns {Promise<Response>}
- */
-export async function put(endpoint, data, options = {}) {
-  const url = buildApiUrl(endpoint);
-  return fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    body: JSON.stringify(data),
-    ...options,
-  });
+export function get(endpoint, options = {}) {
+  return request('GET', endpoint, undefined, options)
 }
 
-/**
- * Make a DELETE request to the API
- * @param {string} endpoint - API endpoint
- * @param {RequestInit} options - Fetch options
- * @returns {Promise<Response>}
- */
-export async function del(endpoint, options = {}) {
-  const url = buildApiUrl(endpoint);
-  return fetch(url, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+export function post(endpoint, data, options = {}) {
+  return request('POST', endpoint, data, options)
 }
 
-/**
- * Get the full API URL for an endpoint
- * @param {string} endpoint - API endpoint
- * @returns {string} Full API URL
- */
+export function put(endpoint, data, options = {}) {
+  return request('PUT', endpoint, data, options)
+}
+
+export function del(endpoint, options = {}) {
+  return request('DELETE', endpoint, undefined, options)
+}
+
 export function getApiUrl(endpoint) {
-  return buildApiUrl(endpoint);
+  return buildApiUrl(endpoint)
 }
