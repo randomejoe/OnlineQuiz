@@ -1,150 +1,88 @@
-# Articles API
+# Online Quiz API
 
-A RESTful API for managing articles built with PHP, following MVC architecture patterns.
+A RESTful API for managing quizzes, questions, and attempts, built with PHP and following MVC architecture patterns.
 
-## Project Structure
+## 🚀 Features
 
-```
+- **Authentication**: JWT-based authentication for students and admins.
+- **Quiz Management**: Create, Read, Update, and Delete quizzes (Admin only).
+- **Question Management**: Support for multiple choice, true/false, and short answer questions.
+- **Attempts & Scoring**: Students can take quizzes and get immediate results with percentage-based scoring.
+- **Admin Dashboard**: View statistics, manage users, and review quiz results.
+
+## 📁 Project Structure
+
+```text
 backend/
 ├── app/
-│   ├── public/
-│   │   └── index.php          # Entry point and route dispatcher
-│   └── src/
-│       ├── Controllers/        # Request handlers
-│       ├── Services/           # Business logic layer
-│       ├── Repositories/       # Data access layer
-│       ├── Models/             # Data models
-│       ├── Framework/          # Base controller class and other general framework code
-│       ├── Utils/              # Utility classes (JsonStore)
-│       └── data/               # JSON data storage
-├── docker-compose.yml          # Docker services configuration
-├── nginx.conf                  # Nginx configuration
-├── PHP.Dockerfile              # PHP Docker image configuration
-└── Articles_API.postman_collection.json  # Postman collection for API testing
+│   ├── public/             # Entry point (index.php) and assets
+│   ├── src/                # Source code (Controllers, Services, Models, Repositories)
+│   ├── vendor/             # Composer dependencies
+│   └── database/           # Database migrations
+├── docker-compose.yml      # Docker orchestration
+├── PHP.Dockerfile          # PHP-FPM configuration
+└── nginx.conf              # Nginx server configuration
 ```
 
-## API Endpoints
+## 🛠️ Tech Stack
 
-### Get All Articles
+- **PHP 8.2+**
+- **MySQL / MariaDB**
+- **FastRoute** for routing
+- **Firebase/php-jwt** for authentication
+- **PHPUnit** for testing
 
-```
-GET /articles
-```
-
-Returns a list of all articles.
-
-### Get Article by ID
-
-```
-GET /articles/{id}
-```
-
-Returns a specific article by its ID.
-
-### Create Article
-
-```
-POST /articles
-Content-Type: application/json
-
-{
-    "title": "Article Title",
-    "author": "Author Name",
-    "category": "Category",
-    "published": "2025-01-15",
-    "content": "Article content here"
-}
-```
-
-Creates a new article and returns it with the assigned ID.
-
-### Update Article
-
-```
-PUT /articles/{id}
-Content-Type: application/json
-
-{
-    "id": 123,
-    "title": "Updated Title",
-    "author": "Author Name",
-    "category": "Category",
-    "published": "2025-01-16",
-    "content": "Updated content"
-}
-```
-
-Updates an existing article by ID.
-
-### Delete Article
-
-```
-DELETE /articles/{id}
-```
-
-Deletes an article by ID.
-
-## Getting Started
+## 🚦 Getting Started
 
 ### Prerequisites
 
 - Docker and Docker Compose
+- Postman (for testing)
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository
+2. Set up environment variables in `backend/app/.env` (copy from `.env.example` if available)
+3. Start the containers:
+   ```bash
+   docker-compose up -d
+   ```
+4. Run database migration/ensure step explicitly:
+   ```bash
+   cd app
+   ./bin/migrate
+   ```
 
+## 📡 API Endpoints
+
+### Auth
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - Login and receive JWT
+- `GET /auth/me` - Get current user profile
+- `POST /auth/logout` - Logout
+
+### Quizzes
+- `GET /quizzes` - List all quizzes
+- `GET /quizzes/{id}` - Get quiz details
+- `POST /quizzes` - Create a quiz (Admin)
+- `PUT /quizzes/{id}` - Update a quiz (Admin)
+- `DELETE /quizzes/{id}` - Delete a quiz (Admin)
+
+### Attempts
+- `POST /quizzes/{id}/attempts` - Start a quiz attempt
+- `POST /attempts/{id}/submit` - Submit answers and complete attempt
+- `GET /attempts/{id}` - Get attempt result
+- `GET /users/me/attempts` - View your attempt history
+
+### Admin
+- `GET /admin/stats` - Overall system statistics
+- `GET /admin/users` - List all users
+- `GET /admin/quizzes/{id}/results` - All attempts for a specific quiz
+
+## 🧪 Testing
+
+Run backend migration manually when schema changes are introduced:
 ```bash
-cd backend
+cd app
+./bin/migrate
 ```
-
-2. Start the Docker containers:
-
-```bash
-docker-compose up
-```
-
-3. Run composer commands:
-
-```bash
-docker-compose exec php composer [...]
-```
-
-### Running the Application
-
-The application will be available at:
-
-- **API**: http://localhost
-- **phpMyAdmin**: http://localhost:8080
-
-### Testing the API
-
-Import the `Articles_API.postman_collection.json` file into Postman to test all endpoints.
-
-### Security Regression Smoke Test
-
-A repeatable smoke test is included to validate key security controls:
-
-```bash
-python3 backend/scripts/security_smoke_test.py
-```
-
-It verifies:
-- registration cannot self-assign admin role
-- non-admin quiz payloads do not expose `is_correct`
-- admin payloads include `is_correct`
-- scoring for multiple choice/true-false uses `option_id` (tampered answer text fails)
-
-## Docker Services
-
-- **nginx**: Web server (port 80)
-- **php**: PHP-FPM service
-- **mysql**: MariaDB database (port 3306)
-  - Username: `developer`
-  - Password: `secret123`
-  - Database: `quiz`
-- **phpmyadmin**: Database management interface (port 8080)
-
-## Data Storage
-
-Currently, the application uses JSON file-based storage (`app/src/data/articles.json`) for demonstration purposes. In production, this should be replaced with a proper database implementation.

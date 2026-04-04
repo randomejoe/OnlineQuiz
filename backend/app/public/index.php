@@ -12,6 +12,14 @@ ini_set('log_errors', '1');
 ini_set('html_errors', '0');
 ini_set('error_log', '/proc/self/fd/2');
 
+if (strlen((string)($_ENV['JWT_SECRET'] ?? '')) < 32) {
+	header('Content-Type: application/json; charset=utf-8');
+	http_response_code(500);
+	echo json_encode(['error' => 'Server misconfiguration']);
+	error_log('JWT_SECRET is missing or too weak (minimum 32 characters).');
+	exit;
+}
+
 /**
  * This is the central route handler of the application.
  * It uses FastRoute to map URLs to controller methods.
@@ -40,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 use FastRoute\RouteCollector;
+use App\Exceptions\HttpException;
+use App\Framework\Request;
+use App\Framework\RequestContext;
 use function FastRoute\simpleDispatcher;
 
 /**
@@ -49,13 +60,8 @@ $dispatcher = simpleDispatcher(function (RouteCollector $r) {
 	// Auth routes (public)
 	$r->addRoute('POST', '/auth/register', ['App\Controllers\AuthController', 'register', 'public']);
 	$r->addRoute('POST', '/auth/login', ['App\Controllers\AuthController', 'login', 'public']);
-
-	// Article routes (require auth)
-	$r->addRoute('GET', '/articles', ['App\Controllers\ArticleController', 'getAll', 'auth']);
-	$r->addRoute('GET', '/articles/{id}', ['App\Controllers\ArticleController', 'get', 'auth']);
-	$r->addRoute('POST', '/articles', ['App\Controllers\ArticleController', 'create', 'auth']);
-	$r->addRoute('PUT', '/articles/{id}', ['App\Controllers\ArticleController', 'update', 'auth']);
-	$r->addRoute('DELETE', '/articles/{id}', ['App\Controllers\ArticleController', 'delete', 'auth']);
+	$r->addRoute('GET', '/auth/me', ['App\Controllers\AuthController', 'me', 'auth']);
+	$r->addRoute('POST', '/auth/logout', ['App\Controllers\AuthController', 'logout', 'public']);
 
 	// Quiz routes
 	$r->addRoute('GET', '/quizzes', ['App\Controllers\QuizController', 'getAll', 'auth']);
@@ -71,13 +77,16 @@ $dispatcher = simpleDispatcher(function (RouteCollector $r) {
 
 	// Attempt routes
 	$r->addRoute('POST', '/quizzes/{id:\\d+}/attempts', ['App\Controllers\AttemptController', 'start', 'auth']);
+	$r->addRoute('POST', '/attempts/{id:\\d+}/answers/check', ['App\Controllers\AttemptController', 'checkAnswer', 'auth']);
 	$r->addRoute('POST', '/attempts/{id:\\d+}/submit', ['App\Controllers\AttemptController', 'submit', 'auth']);
+	$r->addRoute('DELETE', '/attempts/{id:\\d+}', ['App\Controllers\AttemptController', 'abandon', 'auth']);
 	$r->addRoute('GET', '/attempts/{id:\\d+}', ['App\Controllers\AttemptController', 'getResult', 'auth']);
 	$r->addRoute('GET', '/users/me/attempts', ['App\Controllers\AttemptController', 'getHistory', 'auth']);
 
 	// Admin routes (placeholders)
 	$r->addRoute('GET', '/admin/stats', ['App\Controllers\AdminController', 'getStats', 'admin']);
 	$r->addRoute('GET', '/admin/users', ['App\Controllers\AdminController', 'getUsers', 'admin']);
+	$r->addRoute('GET', '/admin/users/{id:\\d+}/attempts', ['App\Controllers\AdminController', 'getUserAttempts', 'admin']);
 	$r->addRoute('DELETE', '/admin/users/{id:\\d+}', ['App\Controllers\AdminController', 'deleteUser', 'admin']);
 	$r->addRoute('GET', '/admin/quizzes/{id:\\d+}/results', ['App\Controllers\AdminController', 'getQuizResults', 'admin']);
 });
@@ -88,6 +97,7 @@ $dispatcher = simpleDispatcher(function (RouteCollector $r) {
  */
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = strtok($_SERVER['REQUEST_URI'], '?');
+RequestContext::set(Request::capture());
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 /**
@@ -108,21 +118,32 @@ switch ($routeInfo[0]) {
 		break;
 	// Handle found routes
 	case FastRoute\Dispatcher::FOUND:
-		$handler = $routeInfo[1];
-		$class = $handler[0];
-		$method = $handler[1];
-		$access = $handler[2] ?? 'auth';
-		$vars = $routeInfo[2];
+		try {
+			$handler = $routeInfo[1];
+			$class = $handler[0];
+			$method = $handler[1];
+			$access = $handler[2] ?? 'auth';
+			$vars = $routeInfo[2];
 
-		if ($access === 'auth' || $access === 'admin') {
-			\App\Middleware\JwtMiddleware::handle();
+			if ($access === 'auth' || $access === 'admin') {
+				\App\Middleware\JwtMiddleware::handle();
+			}
+
+			if ($access === 'admin') {
+				\App\Middleware\RoleMiddleware::requireAdmin();
+			}
+
+			$controller = new $class();
+			$controller->$method($vars);
+		} catch (HttpException $e) {
+			header('Content-Type: application/json; charset=utf-8');
+			http_response_code($e->getStatusCode());
+			echo json_encode(['error' => $e->getMessage()]);
+		} catch (\Throwable $e) {
+			error_log((string)$e);
+			header('Content-Type: application/json; charset=utf-8');
+			http_response_code(500);
+			echo json_encode(['error' => 'Internal server error']);
 		}
-
-		if ($access === 'admin') {
-			\App\Middleware\RoleMiddleware::requireAdmin();
-		}
-
-		$controller = new $class();
-		$controller->$method($vars);
 		break;
 }

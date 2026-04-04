@@ -2,10 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Services\IAuthService;
+use App\Framework\Controller;
 use App\Services\AuthService;
+use App\Services\IAuthService;
+use App\Utils\AuthCookie;
+use App\Utils\PayloadValidator;
 
-class AuthController extends \App\Framework\Controller
+class AuthController extends Controller
 {
 	private IAuthService $authService;
 
@@ -17,17 +20,21 @@ class AuthController extends \App\Framework\Controller
 	public function register($vars = []): void
 	{
 		try {
-			$data = json_decode(file_get_contents('php://input'), true) ?? [];
-			$result = $this->authService->register($data);
-			$this->sendSuccessResponse($result, 201);
+			$data = $this->request()->body();
+			PayloadValidator::assertOnlyAllowedKeys($data, ['name', 'email', 'password'], 'registration');
+			PayloadValidator::assertRequiredKeys($data, ['name', 'email', 'password'], 'registration');
+			PayloadValidator::assertTypes($data, [
+				'name' => 'string',
+				'email' => 'string',
+				'password' => 'string',
+			], 'registration');
+			$this->sendAuthResponse($this->authService->register($data), 201);
 		} catch (\InvalidArgumentException $e) {
 			$this->sendErrorResponse($e->getMessage(), 422);
 		} catch (\RuntimeException $e) {
-			if ($e->getMessage() === 'Email already registered') {
-				$this->sendErrorResponse($e->getMessage(), 409);
-				return;
-			}
-			$this->sendErrorResponse($e->getMessage(), 400);
+			$this->sendExceptionResponse($e, [
+				'Email already registered' => ['code' => 409],
+			], $e->getMessage(), 400);
 		} catch (\Exception $e) {
 			$this->sendErrorResponse('Internal server error', 500);
 		}
@@ -36,9 +43,14 @@ class AuthController extends \App\Framework\Controller
 	public function login($vars = []): void
 	{
 		try {
-			$data = json_decode(file_get_contents('php://input'), true) ?? [];
-			$result = $this->authService->login($data);
-			$this->sendSuccessResponse($result, 200);
+			$data = $this->request()->body();
+			PayloadValidator::assertOnlyAllowedKeys($data, ['email', 'password'], 'login');
+			PayloadValidator::assertRequiredKeys($data, ['email', 'password'], 'login');
+			PayloadValidator::assertTypes($data, [
+				'email' => 'string',
+				'password' => 'string',
+			], 'login');
+			$this->sendAuthResponse($this->authService->login($data), 200);
 		} catch (\InvalidArgumentException $e) {
 			$this->sendErrorResponse($e->getMessage(), 422);
 		} catch (\RuntimeException $e) {
@@ -46,5 +58,31 @@ class AuthController extends \App\Framework\Controller
 		} catch (\Exception $e) {
 			$this->sendErrorResponse('Internal server error', 500);
 		}
+	}
+
+	public function me($vars = []): void
+	{
+		$user = $this->request()->user();
+		if (!is_array($user)) {
+			$this->sendErrorResponse('Unauthorized', 401);
+			return;
+		}
+
+		$this->sendSuccessResponse(['user' => $user]);
+	}
+
+	public function logout($vars = []): void
+	{
+		AuthCookie::clear($this->request());
+		$this->sendSuccessResponse(['message' => 'Logged out']);
+	}
+
+	private function sendAuthResponse(array $result, int $statusCode): void
+	{
+		$token = (string)($result['token'] ?? '');
+		unset($result['token']);
+
+		AuthCookie::issue($token, $this->request());
+		$this->sendSuccessResponse($result, $statusCode);
 	}
 }

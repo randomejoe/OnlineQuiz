@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\QuizAttempt;
+use App\Utils\QuestionRowMapper;
 
 class AttemptRepository extends BaseRepository
 {
@@ -13,7 +14,7 @@ class AttemptRepository extends BaseRepository
 
 		$id = (int)$this->db->lastInsertId();
 
-		$stmt = $this->db->prepare('SELECT * FROM quiz_attempts WHERE id = :id LIMIT 1');
+		$stmt = $this->db->prepare('SELECT id, quiz_id, user_id, started_at FROM quiz_attempts WHERE id = :id LIMIT 1');
 		$stmt->execute([':id' => $id]);
 		$row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -28,114 +29,54 @@ class AttemptRepository extends BaseRepository
 
 	public function getQuizWithQuestions(int $quizId, bool $includeCorrectAnswers = false): ?array
 	{
-		$stmt = $this->db->prepare('SELECT * FROM quizzes WHERE id = :id LIMIT 1');
+		$stmt = $this->db->prepare('SELECT id, title, description, subject, difficulty, time_limit_minutes, created_by, created_at FROM quizzes WHERE id = :id LIMIT 1');
 		$stmt->execute([':id' => $quizId]);
 		$quiz = $stmt->fetch(\PDO::FETCH_ASSOC);
 		if (!$quiz) {
 			return null;
 		}
 
-		$stmt = $this->db->prepare('SELECT * FROM questions WHERE quiz_id = :quiz_id ORDER BY `order` ASC');
-		$stmt->execute([':quiz_id' => $quizId]);
-		$questions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-		foreach ($questions as &$q) {
-			if ($includeCorrectAnswers) {
-				$optStmt = $this->db->prepare('SELECT id, option_text, is_correct FROM options WHERE question_id = :question_id');
-			} else {
-				$optStmt = $this->db->prepare('SELECT id, option_text FROM options WHERE question_id = :question_id');
-			}
-			$optStmt->execute([':question_id' => $q['id']]);
-			$q['options'] = $optStmt->fetchAll(\PDO::FETCH_ASSOC);
-		}
-
-		$quiz['questions'] = $questions;
+		$qStmt = $this->db->prepare(
+			'SELECT q.id AS question_id, q.quiz_id, q.type, q.question_text, q.`order`, q.points,
+                    o.id AS option_id, o.option_text, o.is_correct, o.match_type, o.match_threshold
+             FROM questions q
+             LEFT JOIN options o ON o.question_id = q.id AND o.deleted_at IS NULL
+             WHERE q.quiz_id = :quiz_id AND q.deleted_at IS NULL
+             ORDER BY q.`order` ASC, o.id ASC'
+		);
+		$qStmt->execute([':quiz_id' => $quizId]);
+		$rows = $qStmt->fetchAll(\PDO::FETCH_ASSOC);
+		$quiz['questions'] = QuestionRowMapper::group($rows, $includeCorrectAnswers);
 
 		return $quiz;
 	}
 
-	public function submit(int $attemptId, int $userId, array $answers): QuizAttempt
+	public function insertAnswersBulk(int $attemptId, array $answers): void
 	{
-		$stmt = $this->db->prepare('SELECT * FROM quiz_attempts WHERE id = :id LIMIT 1');
-		$stmt->execute([':id' => $attemptId]);
-		$attempt = $stmt->fetch(\PDO::FETCH_ASSOC);
-		if (!$attempt) {
-			throw new \RuntimeException('Attempt not found');
+		if ($answers === []) {
+			return;
 		}
 
-		if ((int)$attempt['user_id'] !== $userId) {
-			throw new \RuntimeException('Forbidden');
+		$sql = 'INSERT INTO attempt_answers (attempt_id, question_id, option_id, answer_text, is_correct, points_earned) VALUES ';
+		$placeholders = [];
+		$values = [];
+
+		foreach ($answers as $answer) {
+			$placeholders[] = '(?, ?, ?, ?, ?, ?)';
+			$values[] = $attemptId;
+			$values[] = (int)($answer['question_id'] ?? 0);
+			$values[] = isset($answer['option_id']) ? (int)$answer['option_id'] : null;
+			$values[] = $answer['answer_text'] ?? null;
+			$values[] = !empty($answer['is_correct']) ? 1 : 0;
+			$values[] = (int)($answer['points_earned'] ?? 0);
 		}
 
-		if ($attempt['completed_at'] !== null) {
-			throw new \RuntimeException('Attempt already submitted');
-		}
+		$stmt = $this->db->prepare($sql . implode(', ', $placeholders));
+		$stmt->execute($values);
+	}
 
-		// Fetch questions with correct answers
-		$qStmt = $this->db->prepare(
-			'SELECT q.id, q.question_text, q.type, q.points, o.id as correct_option_id, o.option_text as correct_answer
-             FROM questions q
-             LEFT JOIN options o ON o.question_id = q.id AND o.is_correct = 1
-             WHERE q.quiz_id = :quiz_id'
-		);
-		$qStmt->execute([':quiz_id' => $attempt['quiz_id']]);
-		$questions = $qStmt->fetchAll(\PDO::FETCH_ASSOC);
-
-		$questionMap = [];
-		foreach ($questions as $q) {
-			$questionMap[(int)$q['id']] = [
-				'type' => $q['type'] ?? null,
-				'points' => (int)($q['points'] ?? 0),
-				'correct_option_id' => isset($q['correct_option_id']) ? (int)$q['correct_option_id'] : null,
-				'correct_answer' => $q['correct_answer'] ?? null,
-			];
-		}
-
-		$score = 0;
-		// totalPoints should be the sum of all question points (including unanswered)
-		$totalPoints = 0;
-		foreach ($questionMap as $qm) {
-			$totalPoints += (int)($qm['points'] ?? 0);
-		}
-
-		$insertStmt = $this->db->prepare('INSERT INTO attempt_answers (attempt_id, question_id, option_id, answer_text, is_correct, points_earned) VALUES (:attempt_id, :question_id, :option_id, :answer_text, :is_correct, :points_earned)');
-
-		foreach ($answers as $a) {
-			$qId = (int)($a['question_id'] ?? 0);
-			if (!isset($questionMap[$qId])) {
-				continue;
-			}
-
-			$type = (string)($questionMap[$qId]['type'] ?? '');
-			$correctOptionId = $questionMap[$qId]['correct_option_id'];
-			$correctAnswer = $questionMap[$qId]['correct_answer'];
-			$points = $questionMap[$qId]['points'];
-			$submittedOptionId = isset($a['option_id']) ? (int)$a['option_id'] : null;
-			$submitted = isset($a['answer_text']) ? trim((string)$a['answer_text']) : '';
-
-			$isCorrect = false;
-			if (in_array($type, ['multiple_choice', 'true_false'], true)) {
-				$isCorrect = $submittedOptionId !== null && $submittedOptionId > 0 && $correctOptionId !== null && $submittedOptionId === $correctOptionId;
-			} elseif ($correctAnswer !== null) {
-				$isCorrect = mb_strtolower(trim((string)$correctAnswer)) === mb_strtolower($submitted);
-			}
-
-			$pointsEarned = $isCorrect ? $points : 0;
-
-			$insertStmt->execute([
-				':attempt_id' => $attemptId,
-				':question_id' => $qId,
-				':option_id' => $submittedOptionId,
-				':answer_text' => $submitted,
-				':is_correct' => $isCorrect ? 1 : 0,
-				':points_earned' => $pointsEarned,
-			]);
-
-			$score += $pointsEarned;
-		}
-
-		$percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0.0;
-
+	public function finalizeAttempt(int $attemptId, int $score, int $totalPoints, float $percentage): void
+	{
 		$update = $this->db->prepare('UPDATE quiz_attempts SET score = :score, total_points = :total_points, percentage = :percentage, completed_at = NOW() WHERE id = :id');
 		$update->execute([
 			':score' => $score,
@@ -143,28 +84,11 @@ class AttemptRepository extends BaseRepository
 			':percentage' => $percentage,
 			':id' => $attemptId,
 		]);
-
-		// Fetch updated attempt
-		$stmt = $this->db->prepare('SELECT * FROM quiz_attempts WHERE id = :id LIMIT 1');
-		$stmt->execute([':id' => $attemptId]);
-		$row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-		$result = new QuizAttempt();
-		$result->id = (int)$row['id'];
-		$result->quizId = (int)$row['quiz_id'];
-		$result->userId = (int)$row['user_id'];
-		$result->startedAt = $row['started_at'] ?? null;
-		$result->completedAt = $row['completed_at'] ?? null;
-		$result->score = (int)$row['score'];
-		$result->totalPoints = (int)$row['total_points'];
-		$result->percentage = (float)$row['percentage'];
-
-		return $result;
 	}
 
 	public function getById(int $id): ?array
 	{
-		$stmt = $this->db->prepare('SELECT * FROM quiz_attempts WHERE id = :id LIMIT 1');
+		$stmt = $this->db->prepare('SELECT id, quiz_id, user_id, started_at, completed_at, score, total_points, percentage FROM quiz_attempts WHERE id = :id LIMIT 1');
 		$stmt->execute([':id' => $id]);
 		$attempt = $stmt->fetch(\PDO::FETCH_ASSOC);
 		if (!$attempt) {
@@ -177,29 +101,51 @@ class AttemptRepository extends BaseRepository
 		$quizTitle = $quizRow['title'] ?? null;
 
 		$aStmt = $this->db->prepare(
-			'SELECT aa.*, q.question_text, q.type, q.points,
-                    o_correct.option_text as correct_answer
+			"SELECT aa.id, aa.question_id, aa.option_id, aa.answer_text, aa.is_correct, aa.points_earned,
+                    q.question_text, q.type, q.points, q.`order`,
+                    selected.option_text AS selected_option_text,
+                    GROUP_CONCAT(
+                        DISTINCT CASE
+                            WHEN correct.id IS NULL THEN NULL
+                            ELSE correct.option_text
+                        END
+                        ORDER BY correct.id SEPARATOR ' | '
+                    ) AS correct_answer,
+                    MIN(correct.option_text) AS first_correct_answer
              FROM attempt_answers aa
              JOIN questions q ON q.id = aa.question_id
-             LEFT JOIN options o_correct ON o_correct.question_id = aa.question_id AND o_correct.is_correct = 1
+             LEFT JOIN options selected ON selected.id = aa.option_id
+             LEFT JOIN options correct ON correct.question_id = aa.question_id AND correct.is_correct = 1
              WHERE aa.attempt_id = :attempt_id
-             ORDER BY q.`order` ASC'
+             GROUP BY aa.id, aa.question_id, aa.option_id, aa.answer_text, aa.is_correct, aa.points_earned,
+                      q.question_text, q.type, q.points, q.`order`, selected.option_text
+             ORDER BY q.`order` ASC"
 		);
 		$aStmt->execute([':attempt_id' => $id]);
 		$answers = $aStmt->fetchAll(\PDO::FETCH_ASSOC);
 
 		$formatted = [];
-		foreach ($answers as $ans) {
+		foreach ($answers as $answer) {
+			$displayAnswer = $answer['answer_text'];
+			if (($answer['type'] ?? '') !== 'short_answer' && ($displayAnswer === null || $displayAnswer === '')) {
+				$displayAnswer = $answer['selected_option_text'] ?? null;
+			}
+
+			$correctAnswer = $answer['correct_answer'] ?? null;
+			if (($answer['type'] ?? '') === 'short_answer') {
+				$correctAnswer = $answer['first_correct_answer'] ?? $correctAnswer;
+			}
+
 			$formatted[] = [
-				'question_id' => (int)$ans['question_id'],
-				'question_text' => $ans['question_text'] ?? null,
-				'type' => $ans['type'] ?? null,
-				'points' => (int)($ans['points'] ?? 0),
-				'option_id' => isset($ans['option_id']) ? (int)$ans['option_id'] : null,
-				'answer_text' => $ans['answer_text'] ?? null,
-				'correct_answer' => $ans['correct_answer'] ?? null,
-				'is_correct' => (bool)$ans['is_correct'],
-				'points_earned' => (int)($ans['points_earned'] ?? 0),
+				'question_id' => (int)$answer['question_id'],
+				'question_text' => $answer['question_text'] ?? null,
+				'type' => $answer['type'] ?? null,
+				'points' => (int)($answer['points'] ?? 0),
+				'option_id' => isset($answer['option_id']) ? (int)$answer['option_id'] : null,
+				'answer_text' => $displayAnswer,
+				'correct_answer' => $correctAnswer,
+				'is_correct' => (bool)$answer['is_correct'],
+				'points_earned' => (int)($answer['points_earned'] ?? 0),
 			];
 		}
 
@@ -223,42 +169,78 @@ class AttemptRepository extends BaseRepository
 		];
 	}
 
-	public function getByUser(int $userId): array
+	public function getByUserPaginated(int $userId, int $page, int $limit): array
 	{
+		$countStmt = $this->db->prepare('SELECT COUNT(*) FROM quiz_attempts WHERE user_id = :user_id');
+		$countStmt->execute([':user_id' => $userId]);
+		$totalItems = (int)$countStmt->fetchColumn();
+
+		$totalPages = $totalItems > 0 ? (int)ceil($totalItems / $limit) : 1;
+		$offset = ($page - 1) * $limit;
+
 		$stmt = $this->db->prepare(
-			'SELECT qa.*, q.title as quiz_title, q.subject
+			'SELECT qa.id, qa.quiz_id, qa.user_id, qa.started_at, qa.completed_at, qa.score, qa.total_points, qa.percentage,
+			        q.title as quiz_title, q.subject
              FROM quiz_attempts qa
              JOIN quizzes q ON q.id = qa.quiz_id
              WHERE qa.user_id = :user_id
-             ORDER BY qa.started_at DESC'
+             ORDER BY qa.started_at DESC
+             LIMIT :limit OFFSET :offset'
 		);
-		$stmt->execute([':user_id' => $userId]);
-		return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		$stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
+		$stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+		$stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+		$stmt->execute();
+
+		$data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		$meta = [
+			'total' => $totalItems,
+			'page' => $page,
+			'per_page' => $limit,
+			'total_pages' => $totalPages,
+		];
+
+		return [
+			'data' => $data,
+			'meta' => $meta,
+			// Backward compatibility for existing clients.
+			'items' => $data,
+			'pagination' => [
+				'page' => $page,
+				'limit' => $limit,
+				'total_items' => $totalItems,
+				'total_pages' => $totalPages,
+			],
+		];
 	}
 
 	public function findById(int $id): ?array
 	{
-		$stmt = $this->db->prepare('SELECT * FROM quiz_attempts WHERE id = :id LIMIT 1');
+		$stmt = $this->db->prepare('SELECT id, quiz_id, user_id, started_at, completed_at, score, total_points, percentage FROM quiz_attempts WHERE id = :id LIMIT 1');
 		$stmt->execute([':id' => $id]);
 		$row = $stmt->fetch(\PDO::FETCH_ASSOC);
 		return $row ?: null;
 	}
 
-	public function countAll(): int
+	public function deleteInProgress(int $attemptId, int $userId): bool
 	{
-		$stmt = $this->db->query('SELECT COUNT(*) FROM quiz_attempts');
-		return (int)$stmt->fetchColumn();
+		$stmt = $this->db->prepare('DELETE FROM quiz_attempts WHERE id = :id AND user_id = :user_id AND completed_at IS NULL');
+		$stmt->execute([
+			':id' => $attemptId,
+			':user_id' => $userId,
+		]);
+
+		return $stmt->rowCount() > 0;
 	}
 
-	public function getAveragePercentage(): float
+	public function getQuizResultsPaginated(int $quizId, int $page = 1, int $perPage = 10): array
 	{
-		$stmt = $this->db->query('SELECT AVG(percentage) FROM quiz_attempts');
-		$value = $stmt->fetchColumn();
-		return $value === null ? 0.0 : (float)$value;
-	}
+		$offset = ($page - 1) * $perPage;
 
-	public function getQuizResults(int $quizId): array
-	{
+		$countStmt = $this->db->prepare('SELECT COUNT(*) FROM quiz_attempts WHERE quiz_id = :quiz_id');
+		$countStmt->execute([':quiz_id' => $quizId]);
+		$total = (int)$countStmt->fetchColumn();
+
 		$stmt = $this->db->prepare(
 			'SELECT qa.id AS attempt_id, qa.quiz_id, qa.user_id,
                     u.name AS student_name, u.email AS student_email,
@@ -266,9 +248,54 @@ class AttemptRepository extends BaseRepository
              FROM quiz_attempts qa
              JOIN users u ON u.id = qa.user_id
              WHERE qa.quiz_id = :quiz_id
-             ORDER BY qa.started_at DESC'
+             ORDER BY qa.started_at DESC
+             LIMIT :limit OFFSET :offset'
 		);
-		$stmt->execute([':quiz_id' => $quizId]);
-		return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		$stmt->bindValue(':quiz_id', $quizId, \PDO::PARAM_INT);
+		$stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+		$stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+		$stmt->execute();
+
+		return [
+			'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
+			'meta' => [
+				'total' => $total,
+				'page' => $page,
+				'per_page' => $perPage,
+			],
+		];
+	}
+
+	public function getUserAttemptsForAdminPaginated(int $userId, int $page = 1, int $perPage = 10): array
+	{
+		$offset = ($page - 1) * $perPage;
+
+		$countStmt = $this->db->prepare('SELECT COUNT(*) FROM quiz_attempts WHERE user_id = :user_id');
+		$countStmt->execute([':user_id' => $userId]);
+		$total = (int)$countStmt->fetchColumn();
+
+		$stmt = $this->db->prepare(
+			'SELECT qa.id AS attempt_id, qa.quiz_id, qa.user_id,
+                    q.title AS quiz_title, q.subject,
+                    qa.score, qa.total_points, qa.percentage, qa.started_at, qa.completed_at
+             FROM quiz_attempts qa
+             JOIN quizzes q ON q.id = qa.quiz_id
+             WHERE qa.user_id = :user_id
+             ORDER BY qa.started_at DESC
+             LIMIT :limit OFFSET :offset'
+		);
+		$stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
+		$stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+		$stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+		$stmt->execute();
+
+		return [
+			'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
+			'meta' => [
+				'total' => $total,
+				'page' => $page,
+				'per_page' => $perPage,
+			],
+		];
 	}
 }

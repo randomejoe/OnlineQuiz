@@ -9,6 +9,8 @@ use Firebase\JWT\JWT;
 
 class AuthService implements IAuthService
 {
+	private const MIN_JWT_SECRET_LENGTH = 32;
+
 	private IUserRepository $userRepository;
 
 	public function __construct(?IUserRepository $userRepository = null)
@@ -21,7 +23,6 @@ class AuthService implements IAuthService
 		$name = trim($data['name'] ?? '');
 		$email = trim($data['email'] ?? '');
 		$password = $data['password'] ?? '';
-		// Never trust client-provided roles during self-registration.
 		$role = 'student';
 
 		if ($name === '' || $email === '' || $password === '') {
@@ -81,7 +82,7 @@ class AuthService implements IAuthService
 	private function generateToken(User $user): string
 	{
 		$now = time();
-		$expiryHours = (int)($_ENV['JWT_EXPIRY_HOURS'] ?? 2);
+		$expiryHours = max(1, (int)($_ENV['JWT_EXPIRY_HOURS'] ?? 2));
 		$payload = [
 			'sub' => $user->id,
 			'name' => $user->name,
@@ -91,7 +92,11 @@ class AuthService implements IAuthService
 			'exp' => $now + ($expiryHours * 3600),
 		];
 
-		$secret = $_ENV['JWT_SECRET'] ?? '';
+		$secret = (string)($_ENV['JWT_SECRET'] ?? '');
+		if (strlen($secret) < self::MIN_JWT_SECRET_LENGTH) {
+			throw new \RuntimeException('JWT_SECRET is missing or too weak (minimum 32 characters).');
+		}
+
 		return JWT::encode($payload, $secret, 'HS256');
 	}
 }

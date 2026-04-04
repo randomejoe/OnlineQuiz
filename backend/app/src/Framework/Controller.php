@@ -4,43 +4,45 @@ namespace App\Framework;
 
 class Controller
 {
-    public function __construct()
-    {
-    }
+	protected function sendSuccessResponse($data = [], $code = 200): void
+	{
+		$this->respondJson($data, $code);
+	}
 
-    protected function sendSuccessResponse($data = [], $code = 200)
-    {
-        header('Content-Type: application/json');
-        http_response_code($code);
-        echo json_encode($data, JSON_PRETTY_PRINT);
-    }
+	protected function sendErrorResponse($message, $code = 500): void
+	{
+		$this->respondJson(['error' => $message], $code);
+	}
 
-    protected function sendErrorResponse($message, $code = 500)
-    {
-        header('Content-Type: application/json; charset=utf-8');
-        http_response_code($code);
-        echo json_encode(['error' => $message], JSON_PRETTY_PRINT);
-    }
+	protected function sendExceptionResponse(\Throwable $e, array $map = [], string $defaultMessage = 'Internal server error', int $defaultCode = 500): void
+	{
+		$message = $e->getMessage();
+		$code = $defaultCode;
 
-    /**
-     * Maps POST data (JSON) to an instance of the specified class
-     * 
-     * @param string $className The fully qualified class name
-     * @return object|null Returns an instance of the class or null if data is invalid
-     */
-    protected function mapPostDataToClass(string $className): ?object
-    {
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
+		if (isset($map[$message])) {
+			$mapped = $map[$message];
+			$message = $mapped['message'] ?? $message;
+			$code = $mapped['code'] ?? $code;
+		} elseif (isset($map[get_class($e)])) {
+			$mapped = $map[get_class($e)];
+			$message = $mapped['message'] ?? $defaultMessage;
+			$code = $mapped['code'] ?? $code;
+		} else {
+			$message = $defaultMessage;
+		}
 
-        $instance = new $className();
-        
-        foreach ($data as $key => $value) {
-            if (property_exists($instance, $key)) {
-                $instance->$key = $value;
-            }
-        }
+		$this->sendErrorResponse($message, $code);
+	}
 
-        return $instance;
-    }
+	protected function request(): Request
+	{
+		return RequestContext::get();
+	}
+
+	private function respondJson(array $payload, int $code): void
+	{
+		header('Content-Type: application/json; charset=utf-8');
+		http_response_code($code);
+		echo json_encode($payload, JSON_PRETTY_PRINT);
+	}
 }

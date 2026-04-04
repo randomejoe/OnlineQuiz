@@ -10,52 +10,50 @@ class QuizController extends \App\Framework\Controller
 
 	public function __construct(?QuizService $quizService = null)
 	{
-		parent::__construct();
 		$this->quizService = $quizService ?? new QuizService();
 	}
 
 	public function getAll($vars = []): void
 	{
-		$subject = $_GET['subject'] ?? null;
-		$difficulty = $_GET['difficulty'] ?? null;
-		$page = max(1, (int)($_GET['page'] ?? 1));
-		$perPage = max(1, min(100, (int)($_GET['per_page'] ?? 10)));
+		$search = $this->request()->query('search');
+		$subject = $this->request()->query('subject');
+		$difficulty = $this->request()->query('difficulty');
+		$pagination = $this->request()->pagination();
 
 		$filters = [];
+		if ($search !== null && $search !== '') $filters['search'] = $search;
 		if ($subject !== null && $subject !== '') $filters['subject'] = $subject;
 		if ($difficulty !== null && $difficulty !== '') $filters['difficulty'] = $difficulty;
 
 		try {
-			$result = $this->quizService->getAll($filters, $page, $perPage);
+			$result = $this->quizService->getAll($filters, $pagination['page'], $pagination['per_page']);
 			$this->sendSuccessResponse($result);
 		} catch (\Exception $e) {
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e);
 		}
 	}
 
 	public function get($vars = []): void
 	{
 		$id = (int)($vars['id'] ?? 0);
-		$role = (string)($_REQUEST['auth_user']['role'] ?? '');
+		$role = (string)($this->request()->user()['role'] ?? '');
 		$includeCorrectAnswers = ($role === 'admin');
 		try {
 			$result = $this->quizService->getById($id, $includeCorrectAnswers);
 			$this->sendSuccessResponse($result);
 		} catch (\RuntimeException $e) {
-			if ($e->getMessage() === 'Quiz not found') {
-				$this->sendErrorResponse('Quiz not found', 404);
-				return;
-			}
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e, [
+				'Quiz not found' => ['code' => 404, 'message' => 'Quiz not found'],
+			]);
 		} catch (\Exception $e) {
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e);
 		}
 	}
 
 	public function create($vars = []): void
 	{
-		$data = json_decode(file_get_contents('php://input'), true) ?? [];
-		$adminId = (int)($_REQUEST['auth_user']['sub'] ?? 0);
+		$data = $this->request()->body();
+		$adminId = (int)($this->request()->user()['sub'] ?? 0);
 
 		try {
 			$result = $this->quizService->create($data, $adminId);
@@ -63,28 +61,26 @@ class QuizController extends \App\Framework\Controller
 		} catch (\InvalidArgumentException $e) {
 			$this->sendErrorResponse($e->getMessage(), 422);
 		} catch (\Exception $e) {
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e);
 		}
 	}
 
 	public function update($vars = []): void
 	{
 		$id = (int)($vars['id'] ?? 0);
-		$data = json_decode(file_get_contents('php://input'), true) ?? [];
+		$data = $this->request()->body();
 
 		try {
 			$result = $this->quizService->update($id, $data);
 			$this->sendSuccessResponse($result);
 		} catch (\RuntimeException $e) {
-			if ($e->getMessage() === 'Quiz not found') {
-				$this->sendErrorResponse('Quiz not found', 404);
-				return;
-			}
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e, [
+				'Quiz not found' => ['code' => 404, 'message' => 'Quiz not found'],
+			]);
 		} catch (\InvalidArgumentException $e) {
 			$this->sendErrorResponse($e->getMessage(), 422);
 		} catch (\Exception $e) {
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e);
 		}
 	}
 
@@ -95,7 +91,7 @@ class QuizController extends \App\Framework\Controller
 			$this->quizService->delete($id);
 			$this->sendSuccessResponse(['message' => 'Quiz deleted']);
 		} catch (\Exception $e) {
-			$this->sendErrorResponse('Internal server error', 500);
+			$this->sendExceptionResponse($e);
 		}
 	}
 }

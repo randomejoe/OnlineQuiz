@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Quiz;
+use App\Utils\QuestionRowMapper;
 
 class QuizRepository extends BaseRepository
 {
@@ -10,6 +11,11 @@ class QuizRepository extends BaseRepository
 	{
 		$conditions = [];
 		$params = [];
+
+		if (!empty($filters['search'])) {
+			$conditions[] = '(q.title LIKE :search OR q.description LIKE :search OR q.subject LIKE :search)';
+			$params[':search'] = '%' . $filters['search'] . '%';
+		}
 
 		if (!empty($filters['subject'])) {
 			$conditions[] = 'q.subject LIKE :subject';
@@ -28,16 +34,17 @@ class QuizRepository extends BaseRepository
 		$countStmt->execute($params);
 		$total = (int)$countStmt->fetchColumn();
 
-		$offset = max(0, ($page - 1) * $perPage);
+		$offset = ($page - 1) * $perPage;
 		$sql = "SELECT q.id, q.title, q.description, q.subject, q.difficulty, q.time_limit_minutes, q.created_by, q.created_at,
-                       (SELECT COUNT(*) FROM questions qq WHERE qq.quiz_id = q.id) AS question_count,
+                       (SELECT COUNT(*) FROM questions qq WHERE qq.quiz_id = q.id AND qq.deleted_at IS NULL) AS question_count,
                        (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.quiz_id = q.id) AS attempt_count
                 FROM quizzes q
                 $where
+                ORDER BY q.created_at DESC, q.id DESC
                 LIMIT :limit OFFSET :offset";
 		$stmt = $this->db->prepare($sql);
-		foreach ($params as $k => $v) {
-			$stmt->bindValue($k, $v);
+		foreach ($params as $key => $value) {
+			$stmt->bindValue($key, $value);
 		}
 		$stmt->bindValue(':limit', (int)$perPage, \PDO::PARAM_INT);
 		$stmt->bindValue(':offset', (int)$offset, \PDO::PARAM_INT);
@@ -52,34 +59,14 @@ class QuizRepository extends BaseRepository
 
 	public function getById(int $id, bool $includeCorrectAnswers = false): ?array
 	{
-		$stmt = $this->db->prepare('SELECT * FROM quizzes WHERE id = :id LIMIT 1');
+		$stmt = $this->db->prepare('SELECT id, title, description, subject, difficulty, time_limit_minutes, created_by, created_at FROM quizzes WHERE id = :id LIMIT 1');
 		$stmt->execute([':id' => $id]);
 		$quiz = $stmt->fetch(\PDO::FETCH_ASSOC);
 		if (!$quiz) {
 			return null;
 		}
 
-		$qStmt = $this->db->prepare('SELECT * FROM questions WHERE quiz_id = :quiz_id ORDER BY `order` ASC');
-		$qStmt->execute([':quiz_id' => $id]);
-		$questions = $qStmt->fetchAll(\PDO::FETCH_ASSOC);
-
-		foreach ($questions as &$q) {
-			if ($includeCorrectAnswers) {
-				$oStmt = $this->db->prepare('SELECT id, option_text, is_correct FROM options WHERE question_id = :question_id');
-			} else {
-				$oStmt = $this->db->prepare('SELECT id, option_text FROM options WHERE question_id = :question_id');
-			}
-			$oStmt->execute([':question_id' => $q['id']]);
-			$opts = $oStmt->fetchAll(\PDO::FETCH_ASSOC);
-			if ($includeCorrectAnswers) {
-				foreach ($opts as &$opt) {
-					$opt['is_correct'] = (bool)$opt['is_correct'];
-				}
-			}
-			$q['options'] = $opts;
-		}
-
-		$quiz['questions'] = $questions;
+		$quiz['questions'] = $this->fetchQuestionsByQuizId($id, $includeCorrectAnswers);
 		return $quiz;
 	}
 
@@ -119,12 +106,6 @@ class QuizRepository extends BaseRepository
 		$stmt->execute([':id' => $id]);
 	}
 
-	public function countAll(): int
-	{
-		$stmt = $this->db->query('SELECT COUNT(*) FROM quizzes');
-		return (int)$stmt->fetchColumn();
-	}
-
 	public function getMostAttempted(int $limit = 5): array
 	{
 		$limit = max(1, min(50, $limit));
@@ -142,5 +123,21 @@ class QuizRepository extends BaseRepository
 		$stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
 		$stmt->execute();
 		return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+	}
+
+	private function fetchQuestionsByQuizId(int $quizId, bool $includeCorrectAnswers): array
+	{
+		$stmt = $this->db->prepare(
+			'SELECT q.id AS question_id, q.quiz_id, q.type, q.question_text, q.`order`, q.points,
+                    o.id AS option_id, o.option_text, o.is_correct, o.match_type, o.match_threshold
+             FROM questions q
+             LEFT JOIN options o ON o.question_id = q.id AND o.deleted_at IS NULL
+             WHERE q.quiz_id = :quiz_id AND q.deleted_at IS NULL
+             ORDER BY q.`order` ASC, o.id ASC'
+		);
+		$stmt->execute([':quiz_id' => $quizId]);
+		$rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+		return QuestionRowMapper::group($rows, $includeCorrectAnswers);
 	}
 }
