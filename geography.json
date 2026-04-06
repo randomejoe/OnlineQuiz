@@ -1,0 +1,193 @@
+{
+	"quizzes": [
+		{
+			"title": "Easy Geography Quiz",
+			"description": "Test your basic knowledge of world geography",
+			"subject": "Geography",
+			"difficulty": "easy",
+			"time_limit_minutes": 10,
+			"questions": [
+				{
+					"type": "multiple_choice",
+					"question_text": "What is the largest continent on Earth?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "Africa",
+							"is_correct": false
+						},
+						{
+							"option_text": "Asia",
+							"is_correct": true
+						},
+						{
+							"option_text": "Europe",
+							"is_correct": false
+						},
+						{
+							"option_text": "Antarctica",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "multiple_choice",
+					"question_text": "Which ocean is the biggest?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "Atlantic Ocean",
+							"is_correct": false
+						},
+						{
+							"option_text": "Indian Ocean",
+							"is_correct": false
+						},
+						{
+							"option_text": "Pacific Ocean",
+							"is_correct": true
+						},
+						{
+							"option_text": "Arctic Ocean",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "true_false",
+					"question_text": "The Sahara is the largest desert in the world.",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "True",
+							"is_correct": true
+						},
+						{
+							"option_text": "False",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "multiple_choice",
+					"question_text": "Which country is famous for the Eiffel Tower?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "Italy",
+							"is_correct": false
+						},
+						{
+							"option_text": "Spain",
+							"is_correct": false
+						},
+						{
+							"option_text": "France",
+							"is_correct": true
+						},
+						{
+							"option_text": "Germany",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "short_answer",
+					"question_text": "What is the capital of Japan?",
+					"points": 1,
+					"correct_answer": "Tokyo"
+				},
+				{
+					"type": "multiple_choice",
+					"question_text": "Which river is the longest in the world?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "Amazon River",
+							"is_correct": true
+						},
+						{
+							"option_text": "Nile River",
+							"is_correct": false
+						},
+						{
+							"option_text": "Yangtze River",
+							"is_correct": false
+						},
+						{
+							"option_text": "Mississippi River",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "true_false",
+					"question_text": "Australia is both a country and a continent.",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "True",
+							"is_correct": true
+						},
+						{
+							"option_text": "False",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "multiple_choice",
+					"question_text": "Which continent is Egypt located in?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "Asia",
+							"is_correct": false
+						},
+						{
+							"option_text": "Africa",
+							"is_correct": true
+						},
+						{
+							"option_text": "Europe",
+							"is_correct": false
+						},
+						{
+							"option_text": "South America",
+							"is_correct": false
+						}
+					]
+				},
+				{
+					"type": "short_answer",
+					"question_text": "What is the capital city of the Netherlands?",
+					"points": 1,
+					"correct_answer": "Amsterdam"
+				},
+				{
+					"type": "multiple_choice",
+					"question_text": "Which mountain is the tallest in the world?",
+					"points": 1,
+					"options": [
+						{
+							"option_text": "K2",
+							"is_correct": false
+						},
+						{
+							"option_text": "Mount Everest",
+							"is_correct": true
+						},
+						{
+							"option_text": "Kilimanjaro",
+							"is_correct": false
+						},
+						{
+							"option_text": "Mont Blanc",
+							"is_correct": false
+						}
+					]
+				}
+			]
+		}
+	]
+}

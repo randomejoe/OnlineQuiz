@@ -1,0 +1,206 @@
+{
+	"title": "Biology Explorer Quiz",
+	"description": "Challenge your knowledge of cells, genetics, human anatomy, and ecology with this biology quiz!",
+	"subject": "Biology",
+	"difficulty": "medium",
+	"time_limit_minutes": 20,
+	"questions": [
+		{
+			"type": "multiple_choice",
+			"question_text": "What is the powerhouse of the cell?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "Nucleus",
+					"is_correct": false
+				},
+				{
+					"option_text": "Mitochondria",
+					"is_correct": true
+				},
+				{
+					"option_text": "Ribosome",
+					"is_correct": false
+				},
+				{
+					"option_text": "Golgi apparatus",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "DNA stands for Deoxyribonucleic Acid.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": true
+				},
+				{
+					"option_text": "False",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "Which organ in the human body produces insulin?",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "Pancreas",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "PANCREAS",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "Pankreas",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which blood cells help fight infections?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "Red blood cells",
+					"is_correct": false
+				},
+				{
+					"option_text": "White blood cells",
+					"is_correct": true
+				},
+				{
+					"option_text": "Platelets",
+					"is_correct": false
+				},
+				{
+					"option_text": "Plasma",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "Photosynthesis occurs in the mitochondria of plant cells.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": false
+				},
+				{
+					"option_text": "False",
+					"is_correct": true
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "Name the process by which cells divide to produce identical daughter cells.",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "Mitosis",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "MITOSIS",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "Mitosi",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which macromolecule is primarily responsible for storing genetic information?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "Protein",
+					"is_correct": false
+				},
+				{
+					"option_text": "DNA",
+					"is_correct": true
+				},
+				{
+					"option_text": "Carbohydrate",
+					"is_correct": false
+				},
+				{
+					"option_text": "Lipid",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "true_false",
+			"question_text": "Humans have 46 chromosomes in total.",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "True",
+					"is_correct": true
+				},
+				{
+					"option_text": "False",
+					"is_correct": false
+				}
+			]
+		},
+		{
+			"type": "short_answer",
+			"question_text": "What is the largest organ in the human body?",
+			"points": 2,
+			"options": [
+				{
+					"option_text": "Skin",
+					"match_type": "exact"
+				},
+				{
+					"option_text": "SKIN",
+					"match_type": "regex"
+				},
+				{
+					"option_text": "Skinn",
+					"match_type": "levenshtein",
+					"match_threshold": 80
+				}
+			]
+		},
+		{
+			"type": "multiple_choice",
+			"question_text": "Which ecosystem has the highest biodiversity?",
+			"points": 1,
+			"options": [
+				{
+					"option_text": "Desert",
+					"is_correct": false
+				},
+				{
+					"option_text": "Tropical rainforest",
+					"is_correct": true
+				},
+				{
+					"option_text": "Tundra",
+					"is_correct": false
+				},
+				{
+					"option_text": "Grassland",
+					"is_correct": false
+				}
+			]
+		}
+	]
+}
