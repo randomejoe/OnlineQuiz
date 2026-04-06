@@ -16,7 +16,8 @@ class AttemptController extends \App\Framework\Controller
 
 	private function getAuthUserId(): int
 	{
-		return (int)($this->request()->user()['sub'] ?? 0);
+		$user = $this->request()->user() ?? [];
+		return (int)($user['id'] ?? $user['sub'] ?? 0);
 	}
 
 	private function isAdmin(): bool

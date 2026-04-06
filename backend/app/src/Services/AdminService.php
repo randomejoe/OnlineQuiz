@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ForbiddenException;
 use App\Repositories\AttemptRepository;
 use App\Repositories\QuizRepository;
 use App\Repositories\UserRepository;
@@ -9,6 +10,8 @@ use App\Utils\Database;
 
 class AdminService
 {
+	public const SELF_DELETE_MESSAGE = 'You cannot delete your own account';
+
 	private UserRepository $userRepository;
 	private QuizRepository $quizRepository;
 	private AttemptRepository $attemptRepository;
@@ -56,11 +59,15 @@ class AdminService
 		return $this->userRepository->getPaginated($page, $perPage);
 	}
 
-	public function deleteUser(int $id): void
+	public function deleteUser(int $id, int $currentUserId): void
 	{
 		$existing = $this->userRepository->findById($id);
 		if ($existing === null) {
 			throw new \RuntimeException('User not found');
+		}
+
+		if ($currentUserId === $id) {
+			throw new ForbiddenException(self::SELF_DELETE_MESSAGE);
 		}
 
 		$this->userRepository->delete($id);

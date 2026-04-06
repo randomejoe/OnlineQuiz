@@ -1,12 +1,14 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { del, get, readJsonResponse } from '../../utils/api'
 import { formatDateOnly } from '../../utils/format'
+import { useAuthStore } from '../../stores/auth'
 import AdminLayout from '../templates/AdminLayout/AdminLayout.vue'
 import ConfirmDialog from '../molecules/ConfirmDialog/ConfirmDialog.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const users = ref([])
 const loading = ref(false)
 const deleting = ref(false)
@@ -20,6 +22,12 @@ const totalPages = ref(1)
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
 const deleteMessage = ref('Delete this user? This action cannot be undone.')
+const selfDeleteMessage = 'You cannot delete your own account'
+const currentUserId = computed(() => authStore.user?.id ?? null)
+
+function isCurrentUser(user) {
+  return currentUserId.value !== null && Number(user.id) === Number(currentUserId.value)
+}
 
 async function loadUsers() {
   try {
@@ -44,6 +52,11 @@ async function loadUsers() {
 }
 
 function openDeleteDialog(user) {
+  if (isCurrentUser(user)) {
+    error.value = selfDeleteMessage
+    return
+  }
+
   userToDelete.value = user
   deleteMessage.value = `Delete ${user.name}? This action cannot be undone.`
   showDeleteDialog.value = true
@@ -124,7 +137,13 @@ onMounted(loadUsers)
               <td class="px-4 py-3">
                 <div class="flex gap-2">
                   <button type="button" class="btn-secondary px-3 py-1.5 text-xs" @click="goToUserAttempts(user.id)">Attempts</button>
-                  <button type="button" class="btn border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50" @click="openDeleteDialog(user)">
+                  <button
+                    type="button"
+                    class="btn border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100"
+                    :disabled="isCurrentUser(user)"
+                    :title="isCurrentUser(user) ? selfDeleteMessage : 'Delete user'"
+                    @click="openDeleteDialog(user)"
+                  >
                     Delete
                   </button>
                 </div>

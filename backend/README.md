@@ -52,6 +52,7 @@ backend/
    cd app
    ./bin/migrate
    ```
+   This applies the schema and seeds the exported sample quiz data.
 
 ## 📡 API Endpoints
 
@@ -86,3 +87,4 @@ Run backend migration manually when schema changes are introduced:
 cd app
 ./bin/migrate
 ```
+The migration step also applies the seed data from the exported database dump.

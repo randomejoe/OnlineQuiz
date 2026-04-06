@@ -7,6 +7,7 @@ use PDO;
 final class SchemaManager
 {
 	private static bool $initialized = false;
+	private const SEED_MIGRATION = '002_seed_quiz_data.sql';
 
 	public static function ensure(PDO $db): void
 	{
@@ -17,6 +18,8 @@ final class SchemaManager
 		self::ensureCoreTables($db);
 		self::ensureQuestionsColumns($db);
 		self::ensureOptionsColumns($db);
+		self::ensureSeedLogTable($db);
+		self::applySeedMigration($db);
 
 		self::$initialized = true;
 	}
@@ -86,13 +89,49 @@ final class SchemaManager
 	private static function applyInitialMigration(PDO $db): void
 	{
 		$migrationPath = dirname(__DIR__, 2) . '/database/migrations/001_create_tables.sql';
-		if (!is_file($migrationPath)) {
-			throw new \RuntimeException('Initial database migration not found.');
+		self::applySqlFile($db, $migrationPath, 'Initial database migration');
+	}
+
+	private static function ensureSeedLogTable(PDO $db): void
+	{
+		$db->exec(
+			'CREATE TABLE IF NOT EXISTS app_seed_migrations (
+				name VARCHAR(255) NOT NULL PRIMARY KEY,
+				applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+		);
+	}
+
+	private static function applySeedMigration(PDO $db): void
+	{
+		if (self::seedMigrationApplied($db)) {
+			return;
 		}
 
-		$sql = file_get_contents($migrationPath);
+		$migrationPath = dirname(__DIR__, 2) . '/database/migrations/' . self::SEED_MIGRATION;
+		self::applySqlFile($db, $migrationPath, 'Seed migration');
+
+		$stmt = $db->prepare('INSERT INTO app_seed_migrations (name) VALUES (:name)');
+		$stmt->execute([':name' => self::SEED_MIGRATION]);
+	}
+
+	private static function seedMigrationApplied(PDO $db): bool
+	{
+		$stmt = $db->prepare('SELECT COUNT(*) FROM app_seed_migrations WHERE name = :name');
+		$stmt->execute([':name' => self::SEED_MIGRATION]);
+
+		return (int)$stmt->fetchColumn() > 0;
+	}
+
+	private static function applySqlFile(PDO $db, string $path, string $label): void
+	{
+		if (!is_file($path)) {
+			throw new \RuntimeException($label . ' not found.');
+		}
+
+		$sql = file_get_contents($path);
 		if (!is_string($sql) || trim($sql) === '') {
-			throw new \RuntimeException('Initial database migration is empty.');
+			throw new \RuntimeException($label . ' is empty.');
 		}
 
 		$statements = array_filter(array_map('trim', explode(';', $sql)));

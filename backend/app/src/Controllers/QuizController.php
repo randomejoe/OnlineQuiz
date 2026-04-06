@@ -53,7 +53,8 @@ class QuizController extends \App\Framework\Controller
 	public function create($vars = []): void
 	{
 		$data = $this->request()->body();
-		$adminId = (int)($this->request()->user()['sub'] ?? 0);
+		$user = $this->request()->user() ?? [];
+		$adminId = (int)($user['id'] ?? $user['sub'] ?? 0);
 
 		try {
 			$result = $this->quizService->create($data, $adminId);

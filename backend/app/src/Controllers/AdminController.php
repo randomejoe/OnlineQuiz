@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Exceptions\ForbiddenException;
 use App\Services\AdminService;
 
 class AdminController extends \App\Framework\Controller
@@ -37,17 +38,25 @@ class AdminController extends \App\Framework\Controller
 	public function deleteUser($vars = []): void
 	{
 		$id = (int)($vars['id'] ?? 0);
+		$currentUserId = $this->getAuthUserId();
 
 		try {
-			$this->adminService->deleteUser($id);
+			$this->adminService->deleteUser($id, $currentUserId);
 			$this->sendSuccessResponse(['message' => 'User deleted']);
 		} catch (\RuntimeException $e) {
 			$this->sendExceptionResponse($e, [
 				'User not found' => ['code' => 404, 'message' => 'User not found'],
+				ForbiddenException::class => ['code' => 403, 'message' => AdminService::SELF_DELETE_MESSAGE],
 			]);
 		} catch (\Exception $e) {
 			$this->sendExceptionResponse($e);
 		}
+	}
+
+	private function getAuthUserId(): int
+	{
+		$user = $this->request()->user() ?? [];
+		return (int)($user['id'] ?? $user['sub'] ?? 0);
 	}
 
 	public function getQuizResults($vars = []): void
