@@ -19,16 +19,20 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^4.1.3",
-    "@storybook/addon-a11y": "^10.1.11",
-    "@storybook/addon-docs": "^10.1.11",
-    "@storybook/addon-onboarding": "^10.1.11",
-    "@storybook/vue3-vite": "^10.1.11",
-    "@tailwindcss/vite": "^4.1.18",
-    "@vitejs/plugin-vue": "^6.0.3",
-    "storybook": "^10.1.11",
-    "tailwindcss": "^4.1.18",
-    "vite": "^7.3.0",
-    "vite-plugin-vue-devtools": "^8.0.5"
+    "@chromatic-com/storybook": "^5.1.1",
+    "@storybook/addon-a11y": "^10.3.4",
+    "@storybook/addon-docs": "^10.3.4",
+    "@storybook/addon-onboarding": "^10.3.4",
+    "@storybook/vue3-vite": "^10.3.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "storybook": "^10.3.4",
+    "tailwindcss": "^4.2.2",
+    "vite": "^8.0.5",
+    "vite-plugin-vue-devtools": "^8.1.1"
+  },
+  "overrides": {
+    "brace-expansion": "^2.0.3",
+    "minimatch": "^9.0.9"
   }
 }

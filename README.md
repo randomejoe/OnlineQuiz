@@ -26,6 +26,7 @@ The application supports quiz creation, question management, quiz taking, score 
 
 ```bash
 cd backend
+cp app/.env.example app/.env
 docker-compose up -d
 docker-compose exec php ./bin/migrate
 ```

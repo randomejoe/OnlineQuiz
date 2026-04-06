@@ -11,6 +11,7 @@ services:
             context: .
             dockerfile: PHP.Dockerfile
         environment:
+            JWT_SECRET: study-project-jwt-secret-please-change
             DB_HOST: mysql
             DB_PORT: 3306
             DB_NAME: quiz

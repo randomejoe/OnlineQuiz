@@ -43,6 +43,9 @@ backend/
 
 1. Clone the repository
 2. Set up environment variables in `backend/app/.env` (copy from `.env.example` if available)
+   ```bash
+   cp app/.env.example app/.env
+   ```
 3. Start the containers:
    ```bash
    docker-compose up -d
