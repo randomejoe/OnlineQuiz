@@ -10,6 +10,12 @@ services:
         build:
             context: .
             dockerfile: PHP.Dockerfile
+        environment:
+            DB_HOST: mysql
+            DB_PORT: 3306
+            DB_NAME: quiz
+            DB_USER: root
+            DB_PASS: secret123
         volumes:
             - ./app:/app
     mysql:

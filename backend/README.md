@@ -84,7 +84,6 @@ backend/
 
 Run backend migration manually when schema changes are introduced:
 ```bash
-cd app
-./bin/migrate
+docker-compose exec php ./bin/migrate
 ```
 The migration step also applies the seed data from the exported database dump.
